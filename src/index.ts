@@ -1,19 +1,16 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { bookRoute } from "./book/book.route";
+import "dotenv/config";
+import { bookRoute } from "./books/book.route";
+
 const app = new Hono();
 
-app.route("/", bookRoute);
+app.route("/api", bookRoute); 
 
-const port = 3000;
+const port = Number(process.env.PORT);
 console.log(`Server is running on port ${port}`);
 
 serve({
   fetch: app.fetch,
   port,
 });
-
-
-
-
-
