@@ -45,9 +45,6 @@ export async function addBook(c: Context) {
     if (addedBook?.length === 0) {
       return c.json({ message: "Book was unable to be added" }, 404);
     }
-    if (addedBook === null) {
-      return c.json({ error: "Server error" }, 404);
-    }
     return c.json({ message: "Book added successfully", data: addedBook });
   } catch (error) {
     return c.json({ error });
