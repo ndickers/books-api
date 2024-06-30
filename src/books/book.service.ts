@@ -2,8 +2,11 @@ import db from "../drizzle/db";
 import { eq } from "drizzle-orm";
 import { books, TSBook, TIBook } from "../drizzle/schema";
 
-export async function getAllBooks(): Promise<TSBook[] | null> {
-  return await db.query.books.findMany();
+export async function getAllBooks(limit:number, offset:number): Promise<TSBook[] | null> {
+  return await db.query.books.findMany({
+    limit: limit,
+    offset: offset,
+  });
 }
 
 export async function getOneBook(id: number): Promise<TSBook[] | null> {
@@ -25,16 +28,12 @@ export async function updateService(
   id: number,
   book: TIBook
 ): Promise<TSBook[] | null> {
-  return await db
-    .update(books)
-    .set(book)
-    .where(eq(books.id, id))
-    .returning({
-      id: books.id,
-      title: books.title,
-      author: books.author,
-      year: books.year,
-    });
+  return await db.update(books).set(book).where(eq(books.id, id)).returning({
+    id: books.id,
+    title: books.title,
+    author: books.author,
+    year: books.year,
+  });
 }
 
 export async function deleteService(id: number) {

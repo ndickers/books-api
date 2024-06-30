@@ -8,8 +8,13 @@ import {
 import { TSBook, TIBook } from "../drizzle/schema";
 import { Context } from "hono";
 export async function getBooks(c: Context) {
+  const { limit, offset } = c.req.query();
+
   try {
-    const books: TSBook[] | null = await getAllBooks();
+    const books: TSBook[] | null = await getAllBooks(
+      Number(limit),
+      Number(offset)
+    );
     if (books === null) {
       return c.json({ message: "Service cannot be reached" }, 404);
     }
