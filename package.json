@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.11.4",
-    "@hono/zod-validator": "^cd 0.2.2",
     "@neondatabase/serverless": "^0.9.4",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
@@ -18,8 +17,7 @@
     "nodemailer": "^6.9.14",
     "nodemodule": "^0.3.0",
     "typescript": "^5.5.2",
-    "valibot": "^0.37.0",
-    "zod": "^3.23.8"
+    "valibot": "^0.37.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

@@ -4,6 +4,7 @@ import {
   createUser,
   createUserAuth,
   getOneUser,
+  getUserPass,
   removeUser,
 } from "./auth.service";
 import nodemailer from "nodemailer";
@@ -61,11 +62,49 @@ export async function registerUser(c: Context) {
 }
 
 // login user implementation
-export async function loginUser(c: Context) {}
+export async function loginUser(c: Context) {
+  const userDetails = await c.req.json();
+  const loginSchema = v.object({
+    email: v.pipe(
+      v.string("Enter email address"),
+      v.email("Invalid email address")
+    ),
+    password: v.string(),
+  });
+  const result = v.safeParse(loginSchema, userDetails, {
+    abortEarly: true,
+  });
+  if (!result.success) {
+    return c.json({ message: result.issues[0].message }, 404);
+  }
+  const { email, password } = result.output;
+
+  const isUserRegistered = await getOneUser(email);
+  if (isUserRegistered === undefined) {
+    return c.json({ message: "User does not exist" }, 404);
+  }
+  const confirmPass = await getUserPass(isUserRegistered.id);
+
+  const isAuthorised = await bcrypt.compare(
+    password,
+    confirmPass?.password as string
+  );
+  if (!isAuthorised) {
+    return c.json({ message: "Incorrect email or password" }, 404);
+  }
+  const { userName: username } = isUserRegistered;
+
+  const token = jwt.sign({ username, email }, process.env.SECRET as string, {
+    expiresIn: "3h",
+  });
+  return c.json({
+    token,
+    user: isUserRegistered,
+  });
+}
 
 export async function confirmUserRegister(c: Context) {
   const token = c.req.query("token");
-
   try {
     const { email, username, password } = jwt.verify(
       token as string,

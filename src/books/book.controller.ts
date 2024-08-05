@@ -1,35 +1,16 @@
 import {
-  getAllBooks,
-  getOneBook,
   addBookToDB,
   updateService,
+  serveUsersBook,
   deleteService,
 } from "./book.service";
 import { TSBook, TIBook } from "../drizzle/schema";
 import { Context } from "hono";
-export async function getBooks(c: Context) {
-  const { limit, offset } = c.req.query();
+import * as v from "valibot";
 
-  try {
-    const books: TSBook[] | null = await getAllBooks(
-      Number(limit),
-      Number(offset)
-    );
-    if (books === null) {
-      return c.json({ message: "Service cannot be reached" }, 404);
-    }
-    if (books?.length === 0) {
-      return c.json({ message: "There is no book currently" });
-    }
-    return c.json({ data: books });
-  } catch (error) {
-    return c.json({ error }, 404);
-  }
-}
-
-export async function getBook(c: Context) {
+export async function getUserBooks(c: Context) {
   const id: number = Number(c.req.param("id"));
-  const book: TSBook[] | null = await getOneBook(id);
+  const book: TSBook[] | null = await serveUsersBook(id);
   try {
     if (book?.length === 0) {
       return c.json({ message: "The book does not exist" }, 404);
@@ -44,8 +25,18 @@ export async function getBook(c: Context) {
 }
 
 export async function addBook(c: Context) {
+  const bookSchema = v.object({
+    user_id: v.number("Enter user id"),
+    title: v.string("Enter book title"),
+    author: v.string("Enter book author"),
+    year: v.number("Enter publication year"),
+  });
   const bookDetails: TIBook = await c.req.json();
-  const addedBook = await addBookToDB(bookDetails);
+  const results = v.safeParse(bookSchema, bookDetails, { abortEarly: true });
+  if (!results.success) {
+    return c.json({ error: results.issues[0].message }, 404);
+  }
+  const addedBook = await addBookToDB(results.output);
   try {
     if (addedBook?.length === 0) {
       return c.json({ message: "Book was unable to be added" }, 404);
@@ -65,16 +56,10 @@ export async function updateBook(c: Context) {
   const bookUpdated = await updateService(id, bookDetail);
   try {
     if (bookUpdated === null) {
-      return c.json(
-        { message: "You trying to update what does not exist" },
-        404
-      );
+      return c.json({ message: "Server error, Unable to update book" }, 500);
     }
     if (bookUpdated?.length === 0) {
-      return c.json(
-        { message: "You can't update book that does not exist" },
-        404
-      );
+      return c.json({ message: "The book does not exist" }, 404);
     }
     return c.json({ bookUpdated });
   } catch (error) {
@@ -84,12 +69,16 @@ export async function updateBook(c: Context) {
 
 export async function deleteBook(c: Context) {
   const id = Number(c.req.param("id"));
-  const delatedBook = await deleteService(id);
+  //Book deleted succesfully
   try {
-    if (delatedBook.rowCount === 1) {
-      return c.json({ message: "Book deleted succesfully" });
-    } else if (delatedBook.rowCount === 0) {
+    const delatedBook = await deleteService(id);
+    if (deleteBook === null) {
+      return c.json({ error: "Server error, unable to delete book" }, 500);
+    }
+    if (delatedBook?.length === 0) {
       return c.json({ message: "Book does not exist" }, 404);
+    } else {
+      return c.json({ message: "Book deleted successfully" });
     }
   } catch (error) {
     return c.json({ error }, 404);

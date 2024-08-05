@@ -7,6 +7,14 @@ export async function getOneUser(email: string) {
     where: eq(users.email, email),
   });
 }
+export async function getUserPass(id: number) {
+  return await db.query.auth.findFirst({
+    where: eq(auth.userId, id),
+    columns: {
+      password: true,
+    },
+  });
+}
 
 export async function createUser(details: TIUser) {
   return await db.insert(users).values(details).returning({ id: users.id });
