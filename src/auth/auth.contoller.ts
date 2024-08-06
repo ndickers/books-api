@@ -5,6 +5,7 @@ import {
   createUserAuth,
   getOneUser,
   getUserPass,
+  updatePass,
   removeUser,
 } from "./auth.service";
 import nodemailer from "nodemailer";
@@ -53,7 +54,11 @@ export async function registerUser(c: Context) {
     }
   );
   const url = `${process.env.BASE_URL}/confirmation?token=${token}`;
-  const sentEmail = await sendMail(email, url);
+  const sentEmail = await sendMail(email, url, {
+    title: "Confirm your registration",
+    text: "Verify your email",
+    html: "Confirm registration",
+  });
   if (sentEmail === "mail sent") {
     return c.json({ message: "confirm your email" });
   } else {
@@ -103,6 +108,82 @@ export async function loginUser(c: Context) {
   });
 }
 
+export async function provideEmail(c: Context) {
+  const emailSchema = v.object({
+    email: v.pipe(v.string("Enter email"), v.email("Invalid email")),
+  });
+  const inputEmail = await c.req.json();
+  const result = v.safeParse(emailSchema, inputEmail, { abortEarly: true });
+
+  if (!result.success) {
+    return c.json({ error: result.issues[0].message }, 404);
+  }
+  const { email } = result.output;
+  const doesUserExist = await getOneUser(email);
+  if (doesUserExist === undefined) {
+    return c.json({ error: "User does not exist" }, 404);
+  }
+
+  const token = jwt.sign(
+    { userId: doesUserExist.id, email },
+    process.env.SECRET as string,
+    {
+      expiresIn: "2h",
+    }
+  );
+  const url = `${process.env.BASE_URL}/new-password?token=${token}`;
+
+  const sendEmail = await sendMail(email, url, {
+    title: "Book management Password Reset ",
+    text: "Reset your password",
+    html: "password reset",
+  });
+  if (sendEmail === "mail sent") {
+    return c.json({ message: "Reset email sent" });
+  } else {
+    return c.json({ message: "Unable to send reset email" });
+  }
+}
+
+export async function resetNewPassword(c: Context) {
+  const token = c.req.query("token");
+  const password = await c.req.json();
+  const passwordSchema = v.object({
+    password: v.pipe(
+      v.string("Enter password"),
+      v.minLength(8, "Password must be at least 8 characters long"),
+      v.regex(/[a-z]/, "Password must contain at least one lowercase letter"),
+      v.regex(/[A-Z]/, "Password must contain at least one uppercase letter"),
+      v.regex(/[0-9]/, "Password must contain at least one number"),
+      v.regex(
+        /[^a-zA-Z0-9]/,
+        "Password must contain at least one special character"
+      )
+    ),
+  });
+  const result = v.safeParse(passwordSchema, password);
+  if (!result.success) {
+    return c.json({ message: result.issues[0].message }, 404);
+  }
+  const { userId } = jwt.verify(
+    token as string,
+    process.env.SECRET as string
+  ) as JwtPayload;
+  try {
+    const password: string = await bcrypt.hash(result.output.password, 8);
+    const updatePassword = await updatePass(password, userId);
+    if (updatePassword?.length === 0) {
+      return c.json({ error: "unable to update password" }, 404);
+    }
+    if (updatePassword === null) {
+      return c.json({ error: "Server error password" }, 404);
+    }
+    return c.json({ message: "password updated" });
+  } catch (error) {
+    return c.json({ error }, 404);
+  }
+}
+
 export async function confirmUserRegister(c: Context) {
   const token = c.req.query("token");
   try {
@@ -142,7 +223,8 @@ export async function confirmUserRegister(c: Context) {
 
 async function sendMail(
   mailTo: string,
-  url: string
+  url: string,
+  message: { title: string; text: string; html: string }
 ): Promise<void | string | undefined> {
   const transporter = nodemailer.createTransport({
     host: "smtp-mail.outlook.com",
@@ -159,9 +241,9 @@ async function sendMail(
       const info = await transporter.sendMail({
         from: `Books management <${process.env.SENDER_EMAIL as string}>`,
         to: mailTo,
-        subject: "Confirm your registration ✔",
-        text: "Verify your email",
-        html: ` <a href=${url}>Confirm registration</a> `,
+        subject: `${message.title} ✔`,
+        text: `${message.text}`,
+        html: ` <a href=${url}>${message.html}</a> `,
       });
 
       console.log("Message sent: %s", info.messageId);

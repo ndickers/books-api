@@ -16,6 +16,17 @@ export async function getUserPass(id: number) {
   });
 }
 
+export async function updatePass(
+  pass: string,
+  userId: number
+): Promise<{ id: number }[] | null> {
+  return await db
+    .update(auth)
+    .set({ password: pass })
+    .where(eq(auth.userId, userId))
+    .returning({ id: auth.id });
+}
+
 export async function createUser(details: TIUser) {
   return await db.insert(users).values(details).returning({ id: users.id });
 }
