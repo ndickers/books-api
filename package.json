@@ -17,7 +17,8 @@
     "nodemailer": "^6.9.14",
     "nodemodule": "^0.3.0",
     "typescript": "^5.5.2",
-    "valibot": "^0.37.0"
+    "valibot": "^0.37.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

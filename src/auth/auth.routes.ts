@@ -11,7 +11,7 @@ export const authRoutes = new Hono();
 
 authRoutes.post("/register", registerUser);
 
-authRoutes.get("/confirmation", confirmUserRegister);
+authRoutes.post("/confirmation", confirmUserRegister);
 
 authRoutes.post("/reset-password", provideEmail);
 authRoutes.put("/new-password", resetNewPassword);

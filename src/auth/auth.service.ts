@@ -28,11 +28,17 @@ export async function updatePass(
 }
 
 export async function createUser(details: TIUser) {
-  return await db.insert(users).values(details).returning({ id: users.id });
+  return await db
+    .insert(users)
+    .values(details)
+    .returning({ id: users.id, email: users.email, username: users.userName });
 }
 
 export async function createUserAuth(credentials: TIAuth) {
-  return await db.insert(auth).values(credentials).returning({ id: auth.id });
+  return await db
+    .insert(auth)
+    .values(credentials)
+    .returning({ password: auth.password });
 }
 
 export async function removeUser(id: number) {

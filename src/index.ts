@@ -4,7 +4,6 @@ import "dotenv/config";
 import { cors } from "hono/cors";
 import { bookRoute } from "./books/book.route";
 import { authRoutes } from "./auth/auth.routes";
-
 const app = new Hono();
 
 app.use(cors());

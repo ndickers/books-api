@@ -42,7 +42,7 @@ export async function registerUser(c: Context) {
   const { email, username, password: pass } = result.output;
   const doesUserExist = await getOneUser(email);
   if (doesUserExist !== undefined) {
-    return c.json({ message: "This user already exist" });
+    return c.json({ message: "This user already exist" }, 404);
   }
   const password = await bcrypt.hash(pass, 8);
   //   send email to confirm the user
@@ -53,16 +53,16 @@ export async function registerUser(c: Context) {
       expiresIn: "1hr",
     }
   );
-  const url = `${process.env.BASE_URL}/confirmation?token=${token}`;
+  const url = `${process.env.CLIENT_URL}/confirmation?token=${token}`;
   const sentEmail = await sendMail(email, url, {
     title: "Confirm your registration",
     text: "Verify your email",
-    html: "Confirm registration",
+    urLink: "Confirm registration",
   });
   if (sentEmail === "mail sent") {
     return c.json({ message: "confirm your email" });
   } else {
-    return c.json({ message: "Unable to verify email" });
+    return c.json({ message: "Unable to verify email" }, 404);
   }
 }
 
@@ -131,12 +131,12 @@ export async function provideEmail(c: Context) {
       expiresIn: "2h",
     }
   );
-  const url = `${process.env.BASE_URL}/new-password?token=${token}`;
+  const url = `${process.env.CLIENT_URL}/reset-password/reset?token=${token}`;
 
   const sendEmail = await sendMail(email, url, {
     title: "Book management Password Reset ",
     text: "Reset your password",
-    html: "password reset",
+    urLink: "password reset",
   });
   if (sendEmail === "mail sent") {
     return c.json({ message: "Reset email sent" });
@@ -146,8 +146,8 @@ export async function provideEmail(c: Context) {
 }
 
 export async function resetNewPassword(c: Context) {
-  const token = c.req.query("token");
-  const password = await c.req.json();
+  const { token, password } = await c.req.json();
+
   const passwordSchema = v.object({
     password: v.pipe(
       v.string("Enter password"),
@@ -161,15 +161,17 @@ export async function resetNewPassword(c: Context) {
       )
     ),
   });
-  const result = v.safeParse(passwordSchema, password);
+  const result = v.safeParse(passwordSchema, { password });
   if (!result.success) {
     return c.json({ message: result.issues[0].message }, 404);
   }
-  const { userId } = jwt.verify(
-    token as string,
-    process.env.SECRET as string
-  ) as JwtPayload;
+
   try {
+    const { userId } = jwt.verify(
+      token as string,
+      process.env.SECRET as string
+    ) as JwtPayload;
+
     const password: string = await bcrypt.hash(result.output.password, 8);
     const updatePassword = await updatePass(password, userId);
     if (updatePassword?.length === 0) {
@@ -180,12 +182,12 @@ export async function resetNewPassword(c: Context) {
     }
     return c.json({ message: "password updated" });
   } catch (error) {
-    return c.json({ error }, 404);
+    return c.json({ error: "Invalid reset link" }, 404);
   }
 }
 
 export async function confirmUserRegister(c: Context) {
-  const token = c.req.query("token");
+  const { token } = await c.req.json();
   try {
     const { email, username, password } = jwt.verify(
       token as string,
@@ -197,12 +199,19 @@ export async function confirmUserRegister(c: Context) {
       userName: username,
       email,
     });
-    if (createUser.length !== 0) {
-      const userId: number = createdUser[0].id;
-
+    if (createdUser.length !== 0) {
+      const { id: userId, email, username } = createdUser[0];
       const userCredentials = await createUserAuth({ userId, password });
       if (userCredentials.length !== 0) {
-        return c.redirect("/login");
+        // return user with jwt
+
+        // const tokenReg = jwt.sign(
+        //   { email, username },
+        //   process.env.SECRET as string,
+        //   { expiresIn: "3h" }
+        // );
+        // return c.json({ token: tokenReg, user: createdUser });
+        return c.json({ message: "user registration successfully" });
       } else {
         await removeUser(userId);
         return c.json({ error: "Registration failed" }, 404);
@@ -224,7 +233,7 @@ export async function confirmUserRegister(c: Context) {
 async function sendMail(
   mailTo: string,
   url: string,
-  message: { title: string; text: string; html: string }
+  message: { title: string; text: string; urLink: string }
 ): Promise<void | string | undefined> {
   const transporter = nodemailer.createTransport({
     host: "smtp-mail.outlook.com",
@@ -243,7 +252,7 @@ async function sendMail(
         to: mailTo,
         subject: `${message.title} ✔`,
         text: `${message.text}`,
-        html: ` <a href=${url}>${message.html}</a> `,
+        html: ` <a href=${url}>${message.urLink}</a> `,
       });
 
       console.log("Message sent: %s", info.messageId);
@@ -251,6 +260,7 @@ async function sendMail(
     } catch (error) {
       if (error) {
         console.log(error);
+
         return "mail not sent";
       }
     }
