@@ -10,7 +10,7 @@ import * as v from "valibot";
 
 export async function getUserBooks(c: Context) {
   const id: number = Number(c.req.param("id"));
-  const book: TSBook[] | null = await serveUsersBook(id);
+  const book = await serveUsersBook(id);
   try {
     if (book?.length === 0) {
       return c.json({ message: "The book does not exist" }, 404);

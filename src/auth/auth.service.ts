@@ -5,6 +5,10 @@ import { auth, TIAuth, TIUser, users } from "../drizzle/schema";
 export async function getOneUser(email: string) {
   return await db.query.users.findFirst({
     where: eq(users.email, email),
+    columns: {
+      createdAt: false,
+      updatedAt: false,
+    },
   });
 }
 export async function getUserPass(id: number) {

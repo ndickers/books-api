@@ -2,8 +2,14 @@ import db from "../drizzle/db";
 import { eq } from "drizzle-orm";
 import { books, TSBook, TIBook } from "../drizzle/schema";
 
-export async function serveUsersBook(id: number): Promise<TSBook[] | null> {
+type TBook = Omit<TSBook, "user_id" | "createdAt" | "updatedAt">;
+export async function serveUsersBook(id: number): Promise<TBook[] | null> {
   return await db.query.books.findMany({
+    columns: {
+      user_id: false,
+      createdAt: false,
+      updatedAt: false,
+    },
     where: eq(books.user_id, id),
   });
 }

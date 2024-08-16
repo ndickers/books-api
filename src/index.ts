@@ -7,7 +7,7 @@ import { authRoutes } from "./auth/auth.routes";
 const app = new Hono();
 
 app.use(cors());
-app.route("/api", bookRoute);
+app.route("/", bookRoute);
 app.route("/", authRoutes);
 
 const port = Number(process.env.PORT);
