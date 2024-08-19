@@ -10,6 +10,7 @@ export async function serveUsersBook(id: number): Promise<TBook[] | null> {
       createdAt: false,
       updatedAt: false,
     },
+    orderBy: books.id,
     where: eq(books.user_id, id),
   });
 }
