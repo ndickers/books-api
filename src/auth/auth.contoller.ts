@@ -245,7 +245,7 @@ async function sendMail(
 
   const sentFrom = new Sender(
     "MS_ern1Yp@trial-3yxj6ljj56xldo2r.mlsender.net",
-    "book-ke"
+    "book management"
   );
 
   const recipients = [new Recipient(mailTo, "New user")];
