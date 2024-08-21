@@ -12,6 +12,7 @@ import nodemailer from "nodemailer";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import "dotenv/config";
 import bcrypt from "bcrypt";
+import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
 
 export async function registerUser(c: Context) {
   const userDetailSchema = v.object({
@@ -59,6 +60,9 @@ export async function registerUser(c: Context) {
     text: "Verify your email",
     urLink: "Confirm registration",
   });
+
+  console.log({ sentEmail });
+
   if (sentEmail === "mail sent") {
     return c.json({ message: "confirm your email" });
   } else {
@@ -234,42 +238,27 @@ async function sendMail(
   mailTo: string,
   url: string,
   message: { title: string; text: string; urLink: string }
-): Promise<void | string | undefined> {
-  const transporter = nodemailer.createTransport({
-    host: "smtp-mail.outlook.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.SENDER_EMAIL as string,
-      pass: process.env.PASS as string,
-    },
+) {
+  const mailerSend = new MailerSend({
+    apiKey: process.env.MAIL_API_KEY as string,
   });
 
-  async function main() {
-    try {
-      const info = await transporter.sendMail({
-        from: `Books management <${process.env.SENDER_EMAIL as string}>`,
-        to: mailTo,
-        subject: `${message.title} ✔`,
-        text: `${message.text}`,
-        html: ` <a href=${url}>${message.urLink}</a> `,
-      });
+  const sentFrom = new Sender(
+    "MS_ern1Yp@trial-3yxj6ljj56xldo2r.mlsender.net",
+    "book-ke"
+  );
 
-      console.log("Message sent: %s", info.messageId);
-      return "mail sent";
-    } catch (error) {
-      if (error) {
-        console.log(error);
+  const recipients = [new Recipient(mailTo, "New user")];
 
-        return "mail not sent";
-      }
-    }
-  }
-  const res = main()
-    .then((result) => {
-      console.log(result);
-      return result;
-    })
-    .catch(console.error);
-  return res;
+  const emailParams = new EmailParams()
+    .setFrom(sentFrom)
+    .setTo(recipients)
+    .setReplyTo(sentFrom)
+    .setSubject(message.title)
+    .setHtml(`<a href=${url}>${message.urLink}</a> `)
+    .setText(message.text);
+
+  const res = await mailerSend.email.send(emailParams);
+
+  return res.statusCode === 202 ? "mail sent" : "mail not sent";
 }
