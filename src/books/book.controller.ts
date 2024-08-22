@@ -12,9 +12,6 @@ export async function getUserBooks(c: Context) {
   const id: number = Number(c.req.param("id"));
   const book = await serveUsersBook(id);
   try {
-    if (book?.length === 0) {
-      return c.json({ message: "The book does not exist" }, 404);
-    }
     if (book === null) {
       return c.json({ message: "Server error. Couldn't fetch the book" }, 404);
     }
@@ -59,7 +56,7 @@ export async function updateBook(c: Context) {
       return c.json({ message: "Server error, Unable to update book" }, 500);
     }
     if (bookUpdated?.length === 0) {
-      return c.json({ message: "The book does not exist" }, 404);
+      return c.json({ message: "The book does not exist" });
     }
     return c.json({ bookUpdated });
   } catch (error) {
